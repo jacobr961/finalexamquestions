@@ -1,17 +1,26 @@
 def next_letter(letter):
     if letter == "z":
         return "a"
-    return chr(ord(letter) + 1)
+    else:
+        return chr(ord(letter) + 1)
 
 
 def make_grid(rows, cols):
-    if rows == 0:
-        return []
-    return [[" " for _ in range(cols)]] + make_grid(rows - 1, cols)
+    grid = []
+
+    for i in range(rows):
+        line = []
+
+        for j in range(cols):
+            line.append(" ")
+
+        grid.append(line)
+
+    return grid
 
 
-def fill_pattern(grid, row, col, direction, letter, count):
-    if count == 0:
+def fill_pattern(grid, row, col, direction, letter, remaining):
+    if remaining == 0:
         return
 
     grid[row][col] = letter
@@ -19,42 +28,35 @@ def fill_pattern(grid, row, col, direction, letter, count):
 
     if direction == "up":
         if row == 0:
-            fill_pattern(grid, row, col + 1, "down", letter, count - 1)
+            fill_pattern(grid, row, col + 1, "down", letter, remaining - 1)
         else:
-            fill_pattern(grid, row - 1, col + 1, "up", letter, count - 1)
+            fill_pattern(grid, row - 1, col + 1, "up", letter, remaining - 1)
 
     else:
         if row == len(grid) - 1:
-            fill_pattern(grid, row, col + 1, "up", letter, count - 1)
+            fill_pattern(grid, row, col + 1, "up", letter, remaining - 1)
         else:
-            fill_pattern(grid, row + 1, col + 1, "down", letter, count - 1)
+            fill_pattern(grid, row + 1, col + 1, "down", letter, remaining - 1)
 
 
-def print_rows(grid, row):
-    if row == len(grid):
-        return
-
-    line = ""
-
-    for char in grid[row]:
-        line += char + " "
-
-    print(line.rstrip())
-    print_rows(grid, row + 1)
+def print_grid(grid):
+    for row in grid:
+        for letter in row:
+            print(letter, end=" ")
+        print()
 
 
-def main():
-    rows = int(input("rows: "))
-    cycles = int(input("cycles: "))
+rows = int(input("rows: "))
+cycles = int(input("cycles: "))
 
-    letters_per_cycle = rows * (rows + 1) // 2
-    total_letters = letters_per_cycle * cycles
+# Each cycle prints this many letters
+letters_per_cycle = rows * (rows + 1) // 2
 
-    grid = make_grid(rows, total_letters)
+# Total letters for all cycles
+total_letters = letters_per_cycle * cycles
 
-    fill_pattern(grid, rows - 1, 0, "up", "a", total_letters)
+grid = make_grid(rows, total_letters)
 
-    print_rows(grid, 0)
+fill_pattern(grid, rows - 1, 0, "up", "a", total_letters)
 
-
-main()
+print_grid(grid)
