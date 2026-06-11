@@ -1,52 +1,48 @@
-def next_letter(letter):
-    # Go back to a after z
-    if letter == "z":
+def get_next_letter(current_letter):
+    # Start again from a, when it finishes with z
+    if current_letter == "z":
         return "a"
-    else:
-        return chr(ord(letter) + 1)
+
+    return chr(ord(current_letter) + 1)
 
 
-def make_grid(rows, cols):
-    # Create an empty grid filled with spaces
-    grid = []
+def create_blank_pattern(rows, columns):
+    # Having the blank pattern first
+    pattern = []
 
-    for i in range(rows):
-        row = []
+    for row_number in range(rows):
+        new_row = []
 
-        for j in range(cols):
-            row.append(" ")
+        for column_number in range(columns):
+            new_row.append(" ")
 
-        grid.append(row)
+        pattern.append(new_row)
 
-    return grid
+    return pattern
 
 
-def fill_pattern(grid, row, col, direction, letter, remaining):
-    # Stop when all letters have been placed
-    if remaining == 0:
+def add_letters(pattern, row, column, going_up, letter, letters_left):
+    # Base case 
+    if letters_left == 0:
         return
 
-    grid[row][col] = letter
-    letter = next_letter(letter)
+    pattern[row][column] = letter
+    letter = get_next_letter(letter)
 
-    # Move upwards through the rows
-    if direction == "up":
+    if going_up:
         if row == 0:
-            fill_pattern(grid, row, col + 1, "down", letter, remaining - 1)
+            add_letters(pattern, row, column + 1, False, letter, letters_left - 1)
         else:
-            fill_pattern(grid, row - 1, col + 1, "up", letter, remaining - 1)
-
-    # Move downwards through the rows
+            add_letters(pattern, row - 1, column + 1, True, letter, letters_left - 1)
     else:
-        if row == len(grid) - 1:
-            fill_pattern(grid, row, col + 1, "up", letter, remaining - 1)
+        if row == len(pattern) - 1:
+            add_letters(pattern, row, column + 1, True, letter, letters_left - 1)
         else:
-            fill_pattern(grid, row + 1, col + 1, "down", letter, remaining - 1)
+            add_letters(pattern, row + 1, column + 1, False, letter, letters_left - 1)
 
 
-def print_grid(grid):
-    # Print each row of the grid
-    for row in grid:
+def display_pattern(pattern):
+    for row in pattern:
         for letter in row:
             print(letter, end=" ")
         print()
@@ -55,13 +51,12 @@ def print_grid(grid):
 rows = int(input("rows: "))
 cycles = int(input("cycles: "))
 
-# This gives enough columns to hold the full pattern
-letters_per_cycle = rows * (rows + 1) // 2
-total_letters = letters_per_cycle * cycles
+letters_in_one_cycle = rows * (rows + 1) // 2
+total_letters = letters_in_one_cycle * cycles
 
-grid = make_grid(rows, total_letters)
+pattern = create_blank_pattern(rows, total_letters)
 
-# Start from the bottom row and move upwards first
-fill_pattern(grid, rows - 1, 0, "up", "a", total_letters)
+# Start at the bottom row and move upwards
+add_letters(pattern, rows - 1, 0, True, "a", total_letters)
 
-print_grid(grid)
+display_pattern(pattern)
