@@ -36,6 +36,7 @@ class Product:
         if amount <= self.stock:
             self.stock -= amount
             return True
+
         return False
 
 
@@ -45,20 +46,27 @@ class ShoppingCart:
         self.items = []
 
     def add_item(self, product, quantity, day_of_week):
-        unit_price = product.apply_discount(day_of_week)
+        if product.sell(quantity):
+            unit_price = product.apply_discount(day_of_week)
 
-        self.items.append({
-            "product": product,
-            "quantity": quantity,
-            "unit_price": unit_price,
-            "line_total": unit_price * quantity
-        })
+            item = {
+                "product": product,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "line_total": unit_price * quantity
+            }
+
+            self.items.append(item)
+        else:
+            print(f"Not enough stock available for {product.name}.")
 
     def remove_item(self, product):
         for item in self.items:
             if item["product"] == product:
+                product.restock(item["quantity"])
                 self.items.remove(item)
                 return True
+
         return False
 
     def get_total(self):
@@ -76,8 +84,9 @@ class ShoppingCart:
         for item in self.items:
             receipt += (
                 f"{item['product'].name} | "
-                f"${item['unit_price']:.2f} x {item['quantity']} | "
-                f"${item['line_total']:.2f}\n"
+                f"Unit Price: ${item['unit_price']:.2f} | "
+                f"Quantity: {item['quantity']} | "
+                f"Line Total: ${item['line_total']:.2f}\n"
             )
 
         receipt += "-" * 50 + "\n"
@@ -86,148 +95,22 @@ class ShoppingCart:
         return receipt
 
 
-class Supermarket:
-    def __init__(self, name):
-        self.name = name
-        self.products = []
-        self.daily_revenue = 0.0
-
-    def add_product(self, product):
-        self.products.append(product)
-
-    def process_sale(self, cart, day_of_week):
-        for item in cart.items:
-            product = item["product"]
-            quantity = item["quantity"]
-
-            if quantity > product.stock:
-                print("Sale failed. Not enough stock for", product.name)
-                return False
-
-        for item in cart.items:
-            product = item["product"]
-            quantity = item["quantity"]
-            product.sell(quantity)
-
-        self.daily_revenue += cart.get_total()
-        print(cart.get_receipt())
-        return True
-
-    def find_product_by_id(self, product_id):
-        for product in self.products:
-            if product.product_id == product_id:
-                return product
-
-        return None
-
-    def low_stock_report(self):
-        low_stock_items = []
-
-        for product in self.products:
-            if product.stock <= 5:
-                low_stock_items.append(product)
-
-        return low_stock_items
-
-    def save_inventory(self, filename):
-        file = open(filename, "w")
-
-        for product in self.products:
-            file.write(
-                f"{product.product_id}|{product.name}|{product.price}|"
-                f"{product.stock}|{product.category}\n"
-            )
-
-        file.close()
-
-    def load_inventory(self, filename):
-        self.products = []
-
-        file = open(filename, "r")
-
-        for line in file:
-            parts = line.strip().split("|")
-
-            product = Product(
-                parts[0],
-                parts[1],
-                float(parts[2]),
-                int(parts[3]),
-                parts[4]
-            )
-
-            self.products.append(product)
-
-        file.close()
-
-    def print_daily_summary(self):
-        print("\nDaily Summary")
-        print("-" * 50)
-        print(f"Supermarket: {self.name}")
-        print(f"Daily Revenue: ${self.daily_revenue:.2f}")
-
-        print("\nLow Stock Products:")
-        low_stock_items = self.low_stock_report()
-
-        if len(low_stock_items) == 0:
-            print("No low stock products.")
-        else:
-            for product in low_stock_items:
-                print(product)
-
-
-# ----------------------
-# Main program
-# ----------------------
-
-shop = Supermarket("CDU Supermarket")
-
 milk = Product("P001", "Full Cream Milk", 3.20, 24, "dairy")
-cheese = Product("P002", "Cheddar Cheese", 5.80, 4, "dairy")
-bread = Product("P003", "White Bread", 4.73, 15, "bakery")
-cake = Product("P004", "Chocolate Cake", 8.50, 5, "bakery")
-apples = Product("P005", "Apples", 2.50, 40, "produce")
-bananas = Product("P006", "Bananas", 3.10, 3, "produce")
+bread = Product("P002", "White Bread", 4.73, 15, "bakery")
+apples = Product("P003", "Apples", 2.50, 40, "produce")
+chips = Product("P004", "Potato Chips", 3.75, 20, "snacks")
 
-shop.add_product(milk)
-shop.add_product(cheese)
-shop.add_product(bread)
-shop.add_product(cake)
-shop.add_product(apples)
-shop.add_product(bananas)
+print(milk)
+print(bread)
+print(apples)
+print(chips)
 
-print("Discount Testing")
-print("-" * 50)
-print("Milk on Tuesday:", milk.apply_discount(1))
-print("Bread on Saturday:", bread.apply_discount(5))
-print("Apples on Wednesday:", apples.apply_discount(2))
+cart = ShoppingCart("Jacob Roy")
 
-print("\nProcessing Cart 1")
-print("-" * 50)
+cart.add_item(milk, 2, 1)
+cart.add_item(bread, 1, 5)
+cart.add_item(apples, 4, 2)
+cart.add_item(chips, 2, 4)
 
-cart1 = ShoppingCart("Jacob")
-cart1.add_item(milk, 2, 1)
-cart1.add_item(bread, 1, 5)
-cart1.add_item(apples, 4, 2)
-
-shop.process_sale(cart1, 1)
-
-print("\nProcessing Cart 2")
-print("-" * 50)
-
-cart2 = ShoppingCart("David")
-cart2.add_item(cheese, 10, 1)
-cart2.add_item(bananas, 2, 1)
-
-shop.process_sale(cart2, 1)
-
-print("\nSaving inventory...")
-shop.save_inventory("inventory.txt")
-
-print("Clearing product list...")
-shop.products = []
-
-print("Loading inventory again...")
-shop.load_inventory("inventory.txt")
-
-shop.print_daily_summary()
+print()
+print(cart.get_receipt())
