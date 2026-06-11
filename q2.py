@@ -9,12 +9,12 @@ def make_grid(rows, cols):
     grid = []
 
     for i in range(rows):
-        line = []
+        row = []
 
         for j in range(cols):
-            line.append(" ")
+            row.append(" ")
 
-        grid.append(line)
+        grid.append(row)
 
     return grid
 
@@ -31,7 +31,6 @@ def fill_pattern(grid, row, col, direction, letter, remaining):
             fill_pattern(grid, row, col + 1, "down", letter, remaining - 1)
         else:
             fill_pattern(grid, row - 1, col + 1, "up", letter, remaining - 1)
-
     else:
         if row == len(grid) - 1:
             fill_pattern(grid, row, col + 1, "up", letter, remaining - 1)
@@ -49,10 +48,7 @@ def print_grid(grid):
 rows = int(input("rows: "))
 cycles = int(input("cycles: "))
 
-# Each cycle prints this many letters
 letters_per_cycle = rows * (rows + 1) // 2
-
-# Total letters for all cycles
 total_letters = letters_per_cycle * cycles
 
 grid = make_grid(rows, total_letters)
