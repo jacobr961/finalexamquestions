@@ -2,80 +2,13 @@ import cv2
 import numpy as np
 
 
-def move_value(value, amount):
+def change_value(value, amount):
     return (value + amount) % 256
-
-
-def encrypt_pixel(pixel, row, middle, key1, key2):
-    blue = int(pixel[0])
-    green = int(pixel[1])
-    red = int(pixel[2])
-
-    if row < middle:
-        # Top half
-        if blue <= 127:
-            blue = move_value(blue, key1 * key2)
-        else:
-            blue = move_value(blue, -key1)
-
-        if green <= 127:
-            green = move_value(green, -key2)
-        else:
-            green = move_value(green, key1 + key2)
-
-        # Red is unchanged in top half
-
-    else:
-        # Bottom half
-        # Blue is unchanged in bottom half
-
-        if green <= 127:
-            green = move_value(green, key1 ** 2)
-        else:
-            green = move_value(green, -(key1 * key2))
-
-        if red <= 127:
-            red = move_value(red, -(key2 ** 2))
-        else:
-            red = move_value(red, key2 ** 2)
-
-    return [blue, green, red]
-
-
-def decrypt_pixel(pixel, row, middle, key1, key2):
-    blue = int(pixel[0])
-    green = int(pixel[1])
-    red = int(pixel[2])
-
-    if row < middle:
-        # Reverse top half changes
-        if blue <= 127:
-            blue = move_value(blue, -(key1 * key2))
-        else:
-            blue = move_value(blue, key1)
-
-        if green <= 127:
-            green = move_value(green, key2)
-        else:
-            green = move_value(green, -(key1 + key2))
-
-    else:
-        # Reverse bottom half changes
-        if green <= 127:
-            green = move_value(green, -(key1 ** 2))
-        else:
-            green = move_value(green, key1 * key2)
-
-        if red <= 127:
-            red = move_value(red, key2 ** 2)
-        else:
-            red = move_value(red, -(key2 ** 2))
-
-    return [blue, green, red]
 
 
 def encrypt_image(image, key1, key2):
     encrypted = image.copy()
+
     rows = image.shape[0]
     cols = image.shape[1]
 
@@ -83,13 +16,40 @@ def encrypt_image(image, key1, key2):
 
     for i in range(rows):
         for j in range(cols):
-            encrypted[i, j] = encrypt_pixel(image[i, j], i, middle, key1, key2)
+            blue = int(image[i, j, 0])
+            green = int(image[i, j, 1])
+            red = int(image[i, j, 2])
+
+            if i < middle:
+                if blue <= 127:
+                    blue = change_value(blue, key1 * key2)
+                else:
+                    blue = change_value(blue, -key1)
+
+                if green <= 127:
+                    green = change_value(green, -key2)
+                else:
+                    green = change_value(green, key1 + key2)
+
+            else:
+                if green <= 127:
+                    green = change_value(green, key1 ** 2)
+                else:
+                    green = change_value(green, -(key1 * key2))
+
+                if red <= 127:
+                    red = change_value(red, -(key2 ** 2))
+                else:
+                    red = change_value(red, key2 ** 2)
+
+            encrypted[i, j] = [blue, green, red]
 
     return encrypted
 
 
 def decrypt_image(image, key1, key2):
     decrypted = image.copy()
+
     rows = image.shape[0]
     cols = image.shape[1]
 
@@ -97,25 +57,51 @@ def decrypt_image(image, key1, key2):
 
     for i in range(rows):
         for j in range(cols):
-            decrypted[i, j] = decrypt_pixel(image[i, j], i, middle, key1, key2)
+            blue = int(image[i, j, 0])
+            green = int(image[i, j, 1])
+            red = int(image[i, j, 2])
+
+            if i < middle:
+                if blue <= 127:
+                    blue = change_value(blue, -(key1 * key2))
+                else:
+                    blue = change_value(blue, key1)
+
+                if green <= 127:
+                    green = change_value(green, key2)
+                else:
+                    green = change_value(green, -(key1 + key2))
+
+            else:
+                if green <= 127:
+                    green = change_value(green, -(key1 ** 2))
+                else:
+                    green = change_value(green, key1 * key2)
+
+                if red <= 127:
+                    red = change_value(red, key2 ** 2)
+                else:
+                    red = change_value(red, -(key2 ** 2))
+
+            decrypted[i, j] = [blue, green, red]
 
     return decrypted
 
 
-def compare_images(image1, image2):
-    rows = image1.shape[0]
-    cols = image1.shape[1]
-    channels = image1.shape[2]
+def compare_images(original, decrypted):
+    difference = 0
 
-    different_pixels = 0
+    rows = original.shape[0]
+    cols = original.shape[1]
+    channels = original.shape[2]
 
     for i in range(rows):
         for j in range(cols):
             for k in range(channels):
-                if image1[i, j, k] != image2[i, j, k]:
-                    different_pixels += 1
+                if original[i, j, k] != decrypted[i, j, k]:
+                    difference += 1
 
-    return different_pixels
+    return difference
 
 
 key1 = int(input("Enter key1: "))
@@ -124,40 +110,25 @@ key2 = int(input("Enter key2: "))
 photo = cv2.imread("photo.jpg")
 
 if photo is None:
-    print("Could not find photo.jpg")
+    print("Error: photo.jpg was not found.")
+    print("Make sure photo.jpg is in the same folder as this Python file.")
 else:
     encrypted = encrypt_image(photo, key1, key2)
-    cv2.imwrite("encrypted.jpg", encrypted)
+    decrypted = decrypt_image(encrypted, key1, key2)
 
-    encrypted_photo = cv2.imread("encrypted.jpg")
-    decrypted = decrypt_image(encrypted_photo, key1, key2)
-    cv2.imwrite("decrypted.jpg", decrypted)
+    cv2.imwrite("encrypted.png", encrypted)
+    cv2.imwrite("decrypted.png", decrypted)
 
-    decrypted_photo = cv2.imread("decrypted.jpg")
-
-    different = compare_images(photo, decrypted_photo)
+    different = compare_images(photo, decrypted)
 
     if different == 0:
         print("Decryption successful")
     else:
         print("Decryption failed:", different, "pixels differ")
 
-    # Add labels to each image
-    photo_label = photo.copy()
-    encrypted_label = encrypted.copy()
-    decrypted_label = decrypted.copy()
+    combined = np.hstack((photo, encrypted, decrypted))
+    cv2.imwrite("comparison.png", combined)
 
-    cv2.putText(photo_label, "Original", (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-
-    cv2.putText(encrypted_label, "Encrypted", (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-
-    cv2.putText(decrypted_label, "Decrypted", (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-
-    combined = np.hstack((photo_label, encrypted_label, decrypted_label))
-
-    cv2.imshow("Original, Encrypted and Decrypted Images", combined)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    print("encrypted.png saved")
+    print("decrypted.png saved")
+    print("comparison.png saved")
